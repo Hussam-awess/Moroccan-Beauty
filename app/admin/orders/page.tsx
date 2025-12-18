@@ -3,9 +3,16 @@ import { createClient } from "@/lib/supabase/server"
 import { AdminHeader } from "@/components/admin/admin-header"
 import { OrdersTable } from "@/components/admin/orders-table"
 
-export default async function AdminOrdersPage() {
+// Dynamic route page for a specific order
+// Runs server-side on Vercel automatically
+interface Params {
+  id: string
+}
+
+export default async function AdminOrderPage({ params }: { params: Params }) {
   const supabase = await createClient()
 
+  // Get current logged-in user
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -14,13 +21,19 @@ export default async function AdminOrdersPage() {
     redirect("/auth/login")
   }
 
-  const { data: profile } = await supabase.from("profiles").select("is_admin").eq("id", user.id).single()
+  // Check if user is admin
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("is_admin")
+    .eq("id", user.id)
+    .single()
 
   if (!profile?.is_admin) {
     redirect("/")
   }
 
-  const { data: orders } = await supabase
+  // Fetch the order by ID
+  const { data: order } = await supabase
     .from("orders")
     .select(
       `
@@ -29,9 +42,14 @@ export default async function AdminOrdersPage() {
         full_name,
         email
       )
-    `,
+    `
     )
-    .order("created_at", { ascending: false })
+    .eq("id", params.id) // fetch only the specific order
+    .single()
+
+  if (!order) {
+    redirect("/account/orders") // redirect if order not found
+  }
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -39,10 +57,11 @@ export default async function AdminOrdersPage() {
 
       <main className="flex-1 py-12">
         <div className="container">
-          <h1 className="mb-8 font-serif text-3xl font-bold">Orders</h1>
-          <OrdersTable orders={orders || []} />
+          <h1 className="mb-8 font-serif text-3xl font-bold">Order Details</h1>
+          <OrdersTable orders={[order]} /> {/* pass a single order as array */}
         </div>
       </main>
     </div>
   )
 }
+

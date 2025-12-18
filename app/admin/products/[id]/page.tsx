@@ -4,10 +4,15 @@ import { AdminHeader } from "@/components/admin/admin-header"
 import { ProductForm } from "@/components/admin/product-form"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
-export default async function EditProductPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
+interface Params {
+  id: string
+}
+
+export default async function EditProductPage({ params }: { params: Params }) {
+  const { id } = params
   const supabase = await createClient()
 
+  // Get logged-in user
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -16,16 +21,26 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
     redirect("/auth/login")
   }
 
-  const { data: profile } = await supabase.from("profiles").select("is_admin").eq("id", user.id).single()
+  // Check if user is admin
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("is_admin")
+    .eq("id", user.id)
+    .single()
 
   if (!profile?.is_admin) {
     redirect("/")
   }
 
-  const { data: product } = await supabase.from("products").select("*").eq("id", id).single()
+  // Fetch the product by ID
+  const { data: product } = await supabase
+    .from("products")
+    .select("*")
+    .eq("id", id)
+    .single()
 
   if (!product) {
-    redirect("/admin/products")
+    redirect("/admin/products") // redirect if product not found
   }
 
   return (

@@ -6,6 +6,7 @@ import { MessagesTable } from "@/components/admin/messages-table"
 export default async function AdminMessagesPage() {
   const supabase = await createClient()
 
+  // Get logged-in user
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -14,13 +15,22 @@ export default async function AdminMessagesPage() {
     redirect("/auth/login")
   }
 
-  const { data: profile } = await supabase.from("profiles").select("is_admin").eq("id", user.id).single()
+  // Check if user is admin
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("is_admin")
+    .eq("id", user.id)
+    .single()
 
   if (!profile?.is_admin) {
     redirect("/")
   }
 
-  const { data: messages } = await supabase.from("messages").select("*").order("created_at", { ascending: false })
+  // Fetch all messages
+  const { data: messages } = await supabase
+    .from("messages")
+    .select("*")
+    .order("created_at", { ascending: false })
 
   return (
     <div className="flex min-h-screen flex-col">
