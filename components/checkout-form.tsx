@@ -38,8 +38,9 @@ export function CheckoutForm({ profile, cartItems, total }: CheckoutFormProps) {
     phone: profile?.phone || "",
     address: profile?.address || "",
     city: profile?.city || "",
-    country: profile?.country || "Kenya",
+    country: profile?.country || "Tanzania",
     paymentMethod: "mpesa",
+    currency: "USD",
   })
   const router = useRouter()
   const supabase = createClient()
@@ -137,7 +138,7 @@ export function CheckoutForm({ profile, cartItems, total }: CheckoutFormProps) {
               id="phone"
               type="tel"
               required
-              placeholder="+254..."
+              placeholder="+255..."
               value={formData.phone}
               onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
             />
@@ -174,6 +175,36 @@ export function CheckoutForm({ profile, cartItems, total }: CheckoutFormProps) {
               />
             </div>
           </div>
+        </CardContent>
+      </Card>
+      {/* Currency Selection */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Currency</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <RadioGroup
+            value={formData.currency}
+            onValueChange={(value) => setFormData({ ...formData, currency: value })}
+          >
+            <div className="flex items-center space-x-2 rounded-lg border p-4">
+              <RadioGroupItem value="USD" id="usd" />
+              <Label htmlFor="usd" className="flex-1 cursor-pointer">
+                <div>
+                  <p className="font-medium">US Dollars (USD)</p>
+                </div>
+              </Label>
+            </div>
+
+            <div className="flex items-center space-x-2 rounded-lg border p-4">
+              <RadioGroupItem value="TZS" id="tzs" />
+              <Label htmlFor="tzs" className="flex-1 cursor-pointer">
+                <div>
+                  <p className="font-medium">Tanzanian Shillings (TZS)</p>
+                </div>
+              </Label>
+            </div>
+          </RadioGroup>
         </CardContent>
       </Card>
 
@@ -217,7 +248,7 @@ export function CheckoutForm({ profile, cartItems, total }: CheckoutFormProps) {
             Processing...
           </>
         ) : (
-          `Place Order - $${total.toFixed(2)}`
+          `Place Order - ${formData.currency === "USD" ? "$" + total.toFixed(2) : "TZS " + total.toFixed(2)}`
         )}
       </Button>
     </form>

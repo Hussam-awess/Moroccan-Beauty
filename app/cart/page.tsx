@@ -4,6 +4,8 @@ import { Footer } from "@/components/footer"
 import { createClient } from "@/lib/supabase/server"
 import { CartItems } from "@/components/cart-items"
 import { CartSummary } from "@/components/cart-summary"
+import { normalizeCartItems } from "@/lib/normalize-cart"
+import type { CartItem } from "@/types/cart"
 
 export default async function CartPage() {
   const supabase = await createClient()
@@ -12,15 +14,11 @@ export default async function CartPage() {
     data: { user },
   } = await supabase.auth.getUser()
 
-  if (!user) {
-    redirect("/auth/login")
-  }
+  if (!user) redirect("/auth/login")
 
-  // Fetch cart items with product details
-  const { data: cartItems } = await supabase
+  const { data } = await supabase
     .from("cart_items")
-    .select(
-      `
+    .select(`
       id,
       quantity,
       products (
@@ -30,12 +28,17 @@ export default async function CartPage() {
         image_url,
         stock
       )
-    `,
-    )
+    `)
     .eq("user_id", user.id)
 
-  const itemCount = cartItems?.length || 0
-  const subtotal = cartItems?.reduce((sum, item) => sum + (item.products?.price || 0) * item.quantity, 0) || 0
+  // Normalize Supabase response
+  const cartItems: CartItem[] = normalizeCartItems(data)
+
+  const itemCount = cartItems.length
+  const subtotal = cartItems.reduce(
+    (sum, item) => sum + (item.products?.price ?? 0) * item.quantity,
+    0
+  )
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -43,9 +46,11 @@ export default async function CartPage() {
 
       <main className="flex-1 py-12">
         <div className="container">
-          <h1 className="mb-8 text-center font-serif text-3xl font-bold md:text-4xl lg:text-left">Shopping Cart</h1>
+          <h1 className="mb-8 text-center font-serif text-3xl font-bold md:text-4xl lg:text-left">
+            Shopping Cart
+          </h1>
 
-          {!cartItems || cartItems.length === 0 ? (
+          {cartItems.length === 0 ? (
             <div className="rounded-lg border bg-muted/30 p-12 text-center">
               <p className="mb-4 text-lg text-muted-foreground">Your cart is empty</p>
               <a href="/products" className="text-primary hover:underline">

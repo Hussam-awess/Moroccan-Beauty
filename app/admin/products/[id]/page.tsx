@@ -8,6 +8,12 @@ interface Params {
   id: string
 }
 
+export async function generateStaticParams() {
+  // For static export, we can't fetch from database at build time
+  // Return empty array since admin pages require authentication
+  return []
+}
+
 export default async function EditProductPage({ params }: { params: Params }) {
   const { id } = params
   const supabase = await createClient()

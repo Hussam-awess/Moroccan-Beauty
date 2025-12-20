@@ -1,87 +1,90 @@
-import { notFound } from "next/navigation"
-import Image from "next/image"
+import { createClient } from "@/lib/supabase/server"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
-import { createClient } from "@/lib/supabase/server"
-import { AddToCartButton } from "@/components/add-to-cart-button"
-import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
+import { ProductCard } from "@/components/product-card"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import Image from "next/image"
 
-export default async function ProductPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
+export async function generateStaticParams() {
+  // For static export, we can't reliably fetch from database at build time
+  // Return empty array - pages will be generated on-demand
+  return []
+}
+
+export default async function ProductPage({
+  params,
+}: {
+  params: { id: string }
+}) {
   const supabase = await createClient()
 
-  const { data: product } = await supabase.from("products").select("*").eq("id", id).single()
+  const { data: product } = await supabase
+    .from("products")
+    .select("*")
+    .eq("id", params.id)
+    .single()
 
   if (!product) {
-    notFound()
+    return (
+      <div className="flex min-h-screen flex-col">
+        <Header cartCount={0} />
+        <main className="flex-1 py-12">
+          <div className="container">
+            <div className="text-center">
+              <h1 className="text-2xl font-bold mb-4">Product Not Found</h1>
+              <p className="text-muted-foreground mb-8">The product you're looking for doesn't exist.</p>
+              <a href="/products" className="text-primary hover:underline">
+                Browse all products
+              </a>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    )
   }
 
   return (
     <div className="flex min-h-screen flex-col">
-      <Header />
-
+      <Header cartCount={0} />
       <main className="flex-1 py-12">
         <div className="container">
-          <div className="grid gap-8 lg:grid-cols-2 lg:gap-12">
-            {/* Product Image */}
-            <div className="relative mx-auto aspect-square w-full max-w-md overflow-hidden rounded-lg bg-muted lg:mx-0 lg:max-w-none">
-              <Image
-                src={product.image_url || "/placeholder.svg"}
-                alt={product.name}
-                fill
-                className="object-cover"
-                priority
-              />
+          <div className="grid gap-8 lg:grid-cols-2">
+            <div>
+              <div className="relative aspect-square overflow-hidden rounded-lg bg-muted">
+                <Image
+                  src={product.image_url || "/placeholder.svg"}
+                  alt={product.name}
+                  fill
+                  className="object-cover"
+                />
+              </div>
             </div>
-
-            {/* Product Info */}
-            <div className="space-y-6 text-center lg:text-left">
+            <div className="space-y-6">
               <div>
-                <Badge variant="secondary" className="mb-2">
-                  {product.category}
-                </Badge>
-                <h1 className="text-balance font-serif text-3xl font-bold md:text-4xl">{product.name}</h1>
+                <h1 className="text-3xl font-bold">{product.name}</h1>
+                <p className="text-2xl font-bold text-primary mt-2">${product.price.toFixed(2)}</p>
               </div>
-
               <div>
-                <p className="text-3xl font-bold text-primary">${product.price.toFixed(2)}</p>
-                {product.stock === 0 ? (
-                  <p className="mt-2 text-sm text-destructive">Out of stock</p>
-                ) : product.stock < 10 ? (
-                  <p className="mt-2 text-sm text-amber-600">Only {product.stock} left in stock</p>
-                ) : (
-                  <p className="mt-2 text-sm text-muted-foreground">In stock</p>
-                )}
+                <p className="text-muted-foreground">{product.description}</p>
               </div>
-
-              <Separator />
-
-              <div>
-                <h2 className="mb-2 font-semibold">Description</h2>
-                <p className="leading-relaxed text-muted-foreground">{product.description}</p>
+              <div className="flex items-center gap-4">
+                <span className="text-sm text-muted-foreground">
+                  {product.stock > 0 ? `${product.stock} in stock` : "Out of stock"}
+                </span>
               </div>
-
-              {product.ingredients && (
-                <div>
-                  <h2 className="mb-2 font-semibold">Ingredients</h2>
-                  <p className="leading-relaxed text-muted-foreground">{product.ingredients}</p>
-                </div>
-              )}
-
-              {product.usage_instructions && (
-                <div>
-                  <h2 className="mb-2 font-semibold">How to Use</h2>
-                  <p className="leading-relaxed text-muted-foreground">{product.usage_instructions}</p>
-                </div>
-              )}
-
-              <AddToCartButton productId={product.id} stock={product.stock} />
+              <Button
+                size="lg"
+                className="w-full"
+                disabled={product.stock === 0}
+              >
+                Add to Cart
+              </Button>
             </div>
           </div>
         </div>
       </main>
-
       <Footer />
     </div>
   )
